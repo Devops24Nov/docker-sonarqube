@@ -1,0 +1,64 @@
+# content of service-account-credentials.json, used to access to Google Cloud Platform
+gcp_credentials: ENCRYPTED[!1fcffe5cc2de4fbbda5befae835ca275a47c1148dabbbb7b5d21334604efba3ef8730d8bc5820952e575c7dd5177e433!]
+
+env:
+  ARTIFACTORY_PRIVATE_USERNAME: private-reader
+  ARTIFACTORY_PRIVATE_PASSWORD: ENCRYPTED[!921e2792ce1fc164aaea1146ab2478e7aefd8aaa87022ca745adccee4deaa470bb883ad3066738fceb37622f239296a7!]
+  SONARQUBE_BUILD_NUMBER: 8.0.0.28769
+
+docker_builder:
+  name: build_docker
+  build_script:
+    - docker build "7/community"
+    - >-
+      docker build
+      --build-arg SONARQUBE_VERSION="$SONARQUBE_BUILD_NUMBER"
+      --build-arg SONARQUBE_ZIP_SERVER="repox.jfrog.io"
+      --build-arg SONARQUBE_ZIP_URL="https://repox.jfrog.io/repox/sonarsource-public-qa/org/sonarsource/sonarqube/sonar-application/$SONARQUBE_BUILD_NUMBER/sonar-application-$SONARQUBE_BUILD_NUMBER.zip"
+      --build-arg SONARQUBE_ZIP_USERNAME="$ARTIFACTORY_PRIVATE_USERNAME"
+      --build-arg SONARQUBE_ZIP_PASSWORD="$ARTIFACTORY_PRIVATE_PASSWORD"
+      8/community
+    - >-
+      docker build
+      --build-arg SONARQUBE_VERSION="$SONARQUBE_BUILD_NUMBER"
+      --build-arg SONARQUBE_ZIP_SERVER="repox.jfrog.io"
+      --build-arg SONARQUBE_ZIP_URL="https://repox.jfrog.io/repox/sonarsource-private-qa/com/sonarsource/sonarqube/sonarqube-developer/$SONARQUBE_BUILD_NUMBER/sonarqube-developer-$SONARQUBE_BUILD_NUMBER.zip"
+      --build-arg SONARQUBE_ZIP_USERNAME="$ARTIFACTORY_PRIVATE_USERNAME"
+      --build-arg SONARQUBE_ZIP_PASSWORD="$ARTIFACTORY_PRIVATE_PASSWORD"
+      8/developer
+    - >-
+      docker build
+      --build-arg SONARQUBE_VERSION="$SONARQUBE_BUILD_NUMBER"
+      --build-arg SONARQUBE_ZIP_SERVER="repox.jfrog.io"
+      --build-arg SONARQUBE_ZIP_URL="https://repox.jfrog.io/repox/sonarsource-private-qa/com/sonarsource/sonarqube/sonarqube-enterprise/$SONARQUBE_BUILD_NUMBER/sonarqube-enterprise-$SONARQUBE_BUILD_NUMBER.zip"
+      --build-arg SONARQUBE_ZIP_USERNAME="$ARTIFACTORY_PRIVATE_USERNAME"
+      --build-arg SONARQUBE_ZIP_PASSWORD="$ARTIFACTORY_PRIVATE_PASSWORD"
+      8/enterprise
+
+test_task:
+  depends_on: build_docker
+  script:
+    - ./run-tests.sh "7/community"
+    - ./run-tests.sh "8/community"
+    - ./run-tests.sh "8/developer"
+    - ./run-tests.sh "8/enterprise"
+  gke_container:
+    dockerfile: test/Dockerfile-test
+    builder_image_project: ci-cd-215716
+    builder_image_name: docker-builder-v1
+    cluster_name: cirrus-uscentral1a-cluster
+    zone: us-central1-a
+    namespace: default
+    cpu: 1.7
+    memory: 5Gb
+    additional_containers:
+      - name: dockerdaemon
+        privileged: true # docker-in-docker needs to run in privileged mode
+        cpu: 1
+        memory: 3500Mb
+        image: docker:dind
+        port: 2375
+        env:
+          DOCKER_DRIVER: overlay2 # this speeds up the build
+  env:
+    DOCKER_HOST: tcp://127.0.0.1:2375 # this is required so that docker cli commands connect to the "additional container" instead of `docker.sock`.
