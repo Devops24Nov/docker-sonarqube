@@ -6,11 +6,15 @@ env:
   ARTIFACTORY_PRIVATE_PASSWORD: ENCRYPTED[!921e2792ce1fc164aaea1146ab2478e7aefd8aaa87022ca745adccee4deaa470bb883ad3066738fceb37622f239296a7!]
   SONARQUBE_BUILD_NUMBER: 8.0.0.28769
 
-build_docker_builder:
-  name: build_docker
+sq7_ce_docker_builder:
+  name: build_sq7_ce
   build_script:
     - docker build "7/community" --tag sonarqube:7
     - ./run-tests.sh "sonarqube:7"
+
+sq8_ce_docker_builder:
+  name: build_sq8_ce
+  build_script:
     - >-
       docker build 8/community
       --build-arg SONARQUBE_VERSION="$SONARQUBE_BUILD_NUMBER"
@@ -20,6 +24,10 @@ build_docker_builder:
       --build-arg SONARQUBE_ZIP_PASSWORD="$ARTIFACTORY_PRIVATE_PASSWORD"
       --tag sonarqube:8
     - ./run-tests.sh "sonarqube:8"
+
+sq8_de_docker_builder:
+  name: build_sq8_de
+  build_script:
     - >-
       docker build 8/developer
       --build-arg SONARQUBE_VERSION="$SONARQUBE_BUILD_NUMBER"
@@ -29,6 +37,10 @@ build_docker_builder:
       --build-arg SONARQUBE_ZIP_PASSWORD="$ARTIFACTORY_PRIVATE_PASSWORD"
       --tag sonarqube:8-de
     - ./run-tests.sh "sonarqube:8-de"
+
+sq8_ee_docker_builder:
+  name: build_sq8_ee
+  build_script:
     - >-
       docker build 8/enterprise
       --build-arg SONARQUBE_VERSION="$SONARQUBE_BUILD_NUMBER"
@@ -38,38 +50,3 @@ build_docker_builder:
       --build-arg SONARQUBE_ZIP_PASSWORD="$ARTIFACTORY_PRIVATE_PASSWORD"
       --tag sonarqube:8-ee
     - ./run-tests.sh "sonarqube:8-ee"
-
-#test_docker_builder:
-#  name: test_docker
-#  depends_on: build_docker
-#  script:
-#    - ./run-tests.sh "7/community"
-#    - ./run-tests.sh "8/community"
-#    - ./run-tests.sh "8/developer"
-#    - ./run-tests.sh "8/enterprise"
-
-#  script:
-#    - ./run-tests.sh "7/community"
-#    - ./run-tests.sh "8/community"
-#    - ./run-tests.sh "8/developer"
-#    - ./run-tests.sh "8/enterprise"
-#  gke_container:
-#    dockerfile: test/Dockerfile-test
-#    builder_image_project: ci-cd-215716
-#    builder_image_name: docker-builder-v1
-#    cluster_name: cirrus-uscentral1a-cluster
-#    zone: us-central1-a
-#    namespace: default
-#    cpu: 1.7
-#    memory: 5Gb
-#    additional_containers:
-#      - name: dockerdaemon
-##        privileged: true # docker-in-docker needs to run in privileged mode
-#        cpu: 1
-#        memory: 3500Mb
-#        image: docker:dind
-#        port: 2375
-#        env:
-#          DOCKER_DRIVER: overlay2 # this speeds up the build
-#  env:
-#    DOCKER_HOST: tcp://127.0.0.1:2375 # this is required so that docker cli commands connect to the "additional container" instead of `docker.sock`.
