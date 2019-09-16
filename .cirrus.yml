@@ -6,7 +6,7 @@ env:
   ARTIFACTORY_PRIVATE_PASSWORD: ENCRYPTED[!921e2792ce1fc164aaea1146ab2478e7aefd8aaa87022ca745adccee4deaa470bb883ad3066738fceb37622f239296a7!]
   SONARQUBE_BUILD_NUMBER: 8.0.0.28769
 
-docker_builder:
+build_docker_builder:
   name: build_docker
   build_script:
     - docker build "7/community"
@@ -35,11 +35,10 @@ docker_builder:
       --build-arg SONARQUBE_ZIP_PASSWORD="$ARTIFACTORY_PRIVATE_PASSWORD"
       8/enterprise
 
-test_task:
+test_docker_builder:
+  name: test_docker
   depends_on: build_docker
-  container:
-    dockerfile: test/Dockerfile-test
-  test_script:
+  script:
     - ./run-tests.sh "7/community"
     - ./run-tests.sh "8/community"
     - ./run-tests.sh "8/developer"
