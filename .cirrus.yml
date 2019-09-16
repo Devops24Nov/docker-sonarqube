@@ -37,28 +37,36 @@ docker_builder:
 
 test_task:
   depends_on: build_docker
-  script:
+  container:
+    dockerfile: test/Dockerfile-test
+  test_script:
     - ./run-tests.sh "7/community"
     - ./run-tests.sh "8/community"
     - ./run-tests.sh "8/developer"
     - ./run-tests.sh "8/enterprise"
-  gke_container:
-    dockerfile: test/Dockerfile-test
-    builder_image_project: ci-cd-215716
-    builder_image_name: docker-builder-v1
-    cluster_name: cirrus-uscentral1a-cluster
-    zone: us-central1-a
-    namespace: default
-    cpu: 1.7
-    memory: 5Gb
-    additional_containers:
-      - name: dockerdaemon
-        privileged: true # docker-in-docker needs to run in privileged mode
-        cpu: 1
-        memory: 3500Mb
-        image: docker:dind
-        port: 2375
-        env:
-          DOCKER_DRIVER: overlay2 # this speeds up the build
-  env:
-    DOCKER_HOST: tcp://127.0.0.1:2375 # this is required so that docker cli commands connect to the "additional container" instead of `docker.sock`.
+
+#  script:
+#    - ./run-tests.sh "7/community"
+#    - ./run-tests.sh "8/community"
+#    - ./run-tests.sh "8/developer"
+#    - ./run-tests.sh "8/enterprise"
+#  gke_container:
+#    dockerfile: test/Dockerfile-test
+#    builder_image_project: ci-cd-215716
+#    builder_image_name: docker-builder-v1
+#    cluster_name: cirrus-uscentral1a-cluster
+#    zone: us-central1-a
+#    namespace: default
+#    cpu: 1.7
+#    memory: 5Gb
+#    additional_containers:
+#      - name: dockerdaemon
+##        privileged: true # docker-in-docker needs to run in privileged mode
+#        cpu: 1
+#        memory: 3500Mb
+#        image: docker:dind
+#        port: 2375
+#        env:
+#          DOCKER_DRIVER: overlay2 # this speeds up the build
+#  env:
+#    DOCKER_HOST: tcp://127.0.0.1:2375 # this is required so that docker cli commands connect to the "additional container" instead of `docker.sock`.
